@@ -26,6 +26,7 @@ jobs:
     env:
       CC:  ${{ matrix.cfg.cc }}
       CXX: ${{ matrix.cfg.cxx }}
+      GCP_KEY: ${{ secrets.GCP_KEY }}
 
     steps:
       - uses: actions/checkout@v2
@@ -33,20 +34,25 @@ jobs:
         if: matrix.cfg.os == 'ubuntu-20.04'
         run: |
           sudo apt-get install python3-dev python3-numpy python3-packaging
+          echo "${GCP_KEY}" | base64 -d > "${HOME}/gcp_key.json"
           sudo ln -s /usr/lib/llvm-10/include/c++/v1 /usr/include/c++/v1
       - name: install infrastructure (MacOS)
         if: matrix.cfg.os == 'macos-10.15'
-        run: sudo -H pip3 install numpy packaging
+        run: |
+          echo "${GCP_KEY}" | base64 -d > "${HOME}/gcp_key.json"
+          sudo -H pip3 install numpy packaging
+          # Keep this, so we can keep up with changing versions
+          sudo find -L /Library /usr -type f -name Python.h -o -name arrayobject.h
       - name: build-and-test-lua5.1
         run: |
-          bazel --bazelrc=.bazelrc build --config=lua5_1 ${{ matrix.cfg.config }} //...
-          bazel --bazelrc=.bazelrc test  --config=lua5_1 ${{ matrix.cfg.config }} --test_output=errors //...
+          bazel --bazelrc=.bazelrc build --remote_cache="https://storage.googleapis.com/dmlab-travis-cache" --google_credentials="${HOME}/gcp_key.json" --config=lua5_1 ${{ matrix.cfg.config }} //...
+          bazel --bazelrc=.bazelrc test  --remote_cache="https://storage.googleapis.com/dmlab-travis-cache" --google_credentials="${HOME}/gcp_key.json" --config=lua5_1 ${{ matrix.cfg.config }} --test_output=errors //...
       - name: build-and-test-lua5.2
         run: |
-          bazel --bazelrc=.bazelrc build --config=lua5_2 ${{ matrix.cfg.config }} //...
-          bazel --bazelrc=.bazelrc test  --config=lua5_2 ${{ matrix.cfg.config }} --test_output=errors //...
+          bazel --bazelrc=.bazelrc build --remote_cache="https://storage.googleapis.com/dmlab-travis-cache" --google_credentials="${HOME}/gcp_key.json" --config=lua5_2 ${{ matrix.cfg.config }} //...
+          bazel --bazelrc=.bazelrc test  --remote_cache="https://storage.googleapis.com/dmlab-travis-cache" --google_credentials="${HOME}/gcp_key.json" --config=lua5_2 ${{ matrix.cfg.config }} --test_output=errors //...
       - name: build-and-test-luajit
         if: matrix.cfg.os == 'ubuntu-20.04'
         run: |
-          bazel --bazelrc=.bazelrc build --config=luajit ${{ matrix.cfg.config }} //...
-          bazel --bazelrc=.bazelrc test  --config=luajit ${{ matrix.cfg.config }} --test_output=errors //...
+          bazel --bazelrc=.bazelrc build --remote_cache="https://storage.googleapis.com/dmlab-travis-cache" --google_credentials="${HOME}/gcp_key.json" --config=luajit ${{ matrix.cfg.config }} //...
+          bazel --bazelrc=.bazelrc test  --remote_cache="https://storage.googleapis.com/dmlab-travis-cache" --google_credentials="${HOME}/gcp_key.json" --config=luajit ${{ matrix.cfg.config }} --test_output=errors //...

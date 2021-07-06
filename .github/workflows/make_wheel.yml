@@ -50,6 +50,7 @@ jobs:
     env:
       CC:  ${{ matrix.cfg.cc }}
       CXX: ${{ matrix.cfg.cxx }}
+      GCP_KEY: ${{ secrets.GCP_KEY }}
 
     steps:
       - uses: actions/checkout@v2
@@ -63,16 +64,19 @@ jobs:
         if: matrix.cfg.os == 'ubuntu-20.04'
         run: |
           pip install packaging
+          echo "${GCP_KEY}" | base64 -d > "${HOME}/gcp_key.json"
           sudo ln -s /usr/lib/llvm-10/include/c++/v1 /usr/include/c++/v1
 
       - name: install infrastructure (MacOS)
         id: install_infa_macos
         if: matrix.cfg.os == 'macos-10.15'
-        run: sudo -H pip3 install packaging
+        run: |
+          echo "${GCP_KEY}" | base64 -d > "${HOME}/gcp_key.json"
+          sudo -H pip3 install packaging
 
       - name: Build for Python ${{ matrix.py.version }}
         id: build_wheel
-        run: bazel --bazelrc=.bazelrc build --config=luajit ${{ matrix.cfg.config }} //dmlab2d:dmlab2d_wheel
+        run: bazel --bazelrc=.bazelrc build --remote_cache="https://storage.googleapis.com/dmlab-travis-cache" --google_credentials="${HOME}/gcp_key.json" --config=luajit ${{ matrix.cfg.config }} //dmlab2d:dmlab2d_wheel
 
       - name: Upload Release Asset
         id: upload-release-asset
