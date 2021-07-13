@@ -72,7 +72,7 @@ jobs:
 
       - name: Build for Python ${{ matrix.py.version }}
         id: build_wheel
-        run: bazel --bazelrc=.bazelrc build --config=lua5_1 ${{ matrix.cfg.config }} //dmlab2d:dmlab2d_wheel
+        run: bazel --bazelrc=.bazelrc build --config=luajit ${{ matrix.cfg.config }} //dmlab2d:dmlab2d_wheel
 
       - name: Upload Release Asset
         id: upload-release-asset
